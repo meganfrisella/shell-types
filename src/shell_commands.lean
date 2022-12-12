@@ -133,12 +133,13 @@ def uniq_c (input : stream_of_strings) : stream_of_strings :=
 |              VERIFICATION              |
 -----------------------------------------/
 
--- sorting descending then ascending returns the stream of strings to its original state
-theorem des_asc_sort (sos : stream_of_strings) [h_asc : decidable_rel record_asc] [h_des : decidable_rel record_des] : sos = sort (sort_r sos)
+-- a composition of sorts flattens to the outermost sort, 
+-- in this case composing sort_r with sort
+lemma sort_composition (sos : stream_of_strings) [h_asc : decidable_rel record_asc] [h_des : decidable_rel record_des] : sort sos = sort (sort_r sos)
   := sorry
 
 -- sorting then doing uniq produces a stream of strings without duplicate lines
-theorem sort_then_uniq_nodup (sos : stream_of_strings) [h_asc : decidable_rel record_asc]: list.nodup (uniq (sort sos)).records
+lemma sort_then_uniq_nodup (sos : stream_of_strings) [h_asc : decidable_rel record_asc]: list.nodup (uniq (sort sos)).records
   := sorry
 
 end shell
