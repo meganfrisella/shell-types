@@ -15,7 +15,7 @@ namespace shell
 
 -- represents a line of data in a stream-of-strings where each column
 -- is associated with a type
-structure record := (columns : list string)
+def record : Type := list string
 
 -- aliases for per-line predicates (line_pred) and between-line predicates (doc_pred)
 def line_pred : Type := record → Prop
@@ -34,14 +34,16 @@ structure stream_of_strings :=
   (per_line : list line_pred)
   (bet_line : list doc_pred)
 
-/-----------------------------------------
-|                  SORT                  |
------------------------------------------/
+/-                                  -/
+/-               SORT               -/
+/-                                  -/
 
 -- ordering predicates on pairs of records (order ascdending or descending by the first column)
 -- TODO: make more sophisticated (if first col is equal, move to second col and so on)
-def record_asc (r1 r2 : record) : Prop := (list.head r1.columns) < (list.head r2.columns)
-def record_des (r1 r2 : record) : Prop := (list.head r1.columns) > (list.head r2.columns)
+def record_asc : record → record → Prop 
+| r1 r2 := (list.head r1) < (list.head r2)
+def record_des : record → record → Prop 
+| r1 r2 := (list.head r1) > (list.head r2)
 
 -- sort a list of records ascending
 def sort_asc [h_asc : decidable_rel record_asc] : list record → list record 
@@ -94,27 +96,36 @@ def sort_rn_hlp [h_des : decidable_rel record_des] : stream_of_strings → list 
 def sort_rn (input : stream_of_strings) [h_des : decidable_rel record_des]: option stream_of_strings := 
   sort_rn_hlp input input.column_types
 
-/-----------------------------------------
-|                  UNIQ                  |
------------------------------------------/
+/-                                  -/
+/-               UNIQ               -/
+/-                                  -/
 
 -- a predicate that says "no adjacent lines are the same"
 def adj_lines_uniq (input : list record) : Prop := sorry
 
 -- collapse adjacent duplicate records
-def make_uniq : list record → list record 
-| (r1 :: (r2 :: rs)) := sorry -- TODO: want: if r1 == r2 then r1 :: make_uniq rs else r1 :: r2 :: make_uniq rs
-| [r] := [r]
-| [] := []
+def make_uniq [h : linear_order record] : list record → list record 
+| (r1 :: (r2 :: rs)) := if r1 = r2 
+                        then (r1 :: make_uniq rs) 
+                        else (r1 :: (r2 :: make_uniq rs))
+| e := e
+
 -- collapse adjacent duplicate records and prefix records with a count
-def make_uniq_c : list record → list record 
-| (r1 :: (r2 :: rs)) := sorry -- TODO: as above
-| [r] := [r]
+-- TODO: write a coersion string -> nat 
+def prefix_init_count : list record → list record 
+| (r :: rs) := (((to_string 1) :: r) :: prefix_init_count rs)
 | [] := []
+def make_uniq_c_hlp [h : linear_order record] : list record → list record 
+| ((cnt1 :: rs1) :: ((cnt2 :: rs2) :: rs)) := if rs1 = rs2 
+                                              then (((+ cnt1 cnt2) :: rs1) :: make_uniq rs) 
+                                              else ((cnt1 :: rs1) :: ((cnt2 :: rs2) :: make_uniq rs))
+| e := e
+def make_uniq_c [h : linear_order record] : list record → list record 
+| rs := make_uniq_c_hlp (prefix_init_count rs)
 
 -- uniq
 -- filter out adjacent repeated lines
-def uniq (input : stream_of_strings) : stream_of_strings := 
+def uniq (input : stream_of_strings) [h : linear_order record] : stream_of_strings := 
   { records := make_uniq input.records,
     column_types := input.column_types,
     per_line := input.per_line,
@@ -123,15 +134,19 @@ def uniq (input : stream_of_strings) : stream_of_strings :=
 -- uniq -c
 -- filter out adjacent repeated lines and prefix the lines with 
 -- a count column
-def uniq_c (input : stream_of_strings) : stream_of_strings := 
+def uniq_c (input : stream_of_strings) [h : linear_order record] : stream_of_strings := 
   { records := make_uniq_c input.records,
     column_types := type.num :: input.column_types,
     per_line := input.per_line,
     bet_line := adj_lines_uniq :: input.bet_line }
 
-/-----------------------------------------
-|              VERIFICATION              |
------------------------------------------/
+/-                                  -/
+/-           VERIFICATION           -/
+/-                                  -/
+
+-- prove `decidable_rel record_asc` as a separate lemma
+-- prove `decidable_rel record_des` as a separate lemma
+-- prove `linear_order record` as a separate lemma
 
 -- a composition of sorts flattens to the outermost sort, 
 -- in this case composing sort_r with sort
@@ -139,7 +154,7 @@ lemma sort_composition (sos : stream_of_strings) [h_asc : decidable_rel record_a
   := sorry
 
 -- sorting then doing uniq produces a stream of strings without duplicate lines
-lemma sort_then_uniq_nodup (sos : stream_of_strings) [h_asc : decidable_rel record_asc]: list.nodup (uniq (sort sos)).records
+lemma sort_then_uniq_nodup (sos : stream_of_strings) [h_asc : decidable_rel record_asc] [h : linear_order record] : list.nodup (uniq (sort sos)).records
   := sorry
 
 end shell
