@@ -1,5 +1,5 @@
 [package]
-name = "logical-verification"
+name = "shell-commands"
 version = "2.0"
 lean_version = "leanprover-community/lean:3.47.0"
 path = "."

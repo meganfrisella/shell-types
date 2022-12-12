@@ -1,4 +1,4 @@
-namespace shell
+import data.list.sort
 
 /-
 
@@ -10,6 +10,8 @@ uniq -c |
 sort -rn
 
 -/
+
+namespace shell
 
 -- represents a line of data in a stream-of-strings where each column
 -- is associated with a type
@@ -36,59 +38,62 @@ structure stream_of_strings :=
 |                  SORT                  |
 -----------------------------------------/
 
--- four ordering predicates, one for each sort variant
-def has_def_order (input : list record) : Prop := sorry
-def has_r_order (input : list record) : Prop := sorry
-def has_n_order (input : list record) : Prop := sorry
-def has_rn_order (input : list record) : Prop := sorry
+-- ordering predicates on records (sort ascdending or descending by the first column)
+-- TODO: this can be more sophisticated (if first col is equal, move to second col and so on)
+def record_asc (r1 r2 : record) : Prop := (list.head r1.columns) < (list.head r2.columns)
+def record_des (r1 r2 : record) : Prop := (list.head r1.columns) > (list.head r2.columns)
 
--- implementations of the four ordering functions
-def make_sort (input : list record) : list record := sorry
-def make_sort_r (input : list record) : list record := sorry
-def make_sort_n (input : list record) : list record := sorry
-def make_sort_rn (input : list record) : list record := sorry
+-- sort a list of records ascending and descending
+def sort_asc (input : list record) [h_asc : decidable_rel record_asc] : list record 
+  := list.merge_sort record_asc input
+def sort_des (input : list record) [h_des : decidable_rel record_des] : list record 
+  := list.merge_sort record_des input
+
+-- four ordering predicates, one for each sort variant
+def sorted_asc (input : list record) : Prop := list.sorted record_asc input
+def sorted_des (input : list record) : Prop := list.sorted record_des input
 
 -- sort
 -- sort alphabetically in ascending order
 -- no requirements on input
-def sort (input : stream_of_strings) : stream_of_strings := 
-  { records := make_sort input.records,
+def sort (input : stream_of_strings) [h_asc : decidable_rel record_asc] : stream_of_strings := 
+  { records := sort_asc input.records,
     column_types := input.column_types,
     per_line := input.per_line,
-    bet_line := [has_def_order] }
+    bet_line := [sorted_asc] }
 
 -- sort -r
 -- sort alphabetically in descending order
 -- no requirements on input
-def sort_r (input : stream_of_strings) : stream_of_strings := 
-  { records := make_sort_r input.records,
+def sort_r (input : stream_of_strings) [h_des : decidable_rel record_des] : stream_of_strings := 
+  { records := sort_des input.records,
     column_types := input.column_types,
     per_line := input.per_line,
-    bet_line := [has_r_order] }
+    bet_line := [sorted_des] }
 
 -- sort -n
 -- sort numerically in ascending order
 -- helper checks that the first column has numeric type
-def sort_n_helper : stream_of_strings → list type → option stream_of_strings 
-| sos (type.num :: ts) := some {records := make_sort_n sos.records,
+def sort_n_helper [h_asc : decidable_rel record_asc] : stream_of_strings → list type → option stream_of_strings 
+| sos (type.num :: ts) := some {records := sort_asc sos.records,
                                 column_types := sos.column_types,
                                 per_line := sos.per_line,
-                                bet_line := [has_n_order]}
+                                bet_line := [sorted_asc]}
 | _ _ := none
-def sort_n (input : stream_of_strings) : option stream_of_strings := 
+def sort_n (input : stream_of_strings) [h_asc : decidable_rel record_asc] : option stream_of_strings := 
   sort_n_helper input input.column_types
 
 -- sort -rn
 -- sort numerically in descending order
 -- helper checks that the first column has numeric type
-def sort_rn_helper : stream_of_strings → list type → option stream_of_strings 
-| sos (type.num :: ts) := some {records := make_sort_rn sos.records,
+def sort_rn_helper [h_des : decidable_rel record_des] : stream_of_strings → list type → option stream_of_strings 
+| sos (type.num :: ts) := some {records := sort_des sos.records,
                                 column_types := sos.column_types,
                                 per_line := sos.per_line,
-                                bet_line := [has_rn_order]}
+                                bet_line := [sorted_des]}
 | _ _ := none
-def sort_rn (input : stream_of_strings) : option stream_of_strings := 
-  sort_n_helper input input.column_types
+def sort_rn (input : stream_of_strings) [h_des : decidable_rel record_des]: option stream_of_strings := 
+  sort_rn_helper input input.column_types
 
 /-----------------------------------------
 |                  UNIQ                  |
@@ -122,15 +127,7 @@ def uniq_c (input : stream_of_strings) : stream_of_strings :=
 |              VERIFICATION              |
 -----------------------------------------/
 
-inductive is_in {α : Type} : α → list α → Prop
-| intro_head (a : α) (as : list α) : is_in a (a::as)
-| intro_rest (a b : α) (as : list α) : is_in a as → is_in a (b::as)
-
-inductive no_duplicates {α : Type} : list α → Prop
-| intro_base : no_duplicates list.nil
-| intro_rest (a : α) (as : list α) : ¬(is_in a as) → no_duplicates as → no_duplicates (a::as)
-
-theorem sort_then_uniq (input : stream_of_strings) : no_duplicates (sort (uniq input)).records 
+theorem sort_then_uniq_nodup (input : stream_of_strings) [h_asc : decidable_rel record_asc]: list.nodup (sort (uniq input)).records
   := sorry
 
 end shell
