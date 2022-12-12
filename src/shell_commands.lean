@@ -1,4 +1,5 @@
 import data.list.sort
+import .utils
 
 /-
 
@@ -111,13 +112,12 @@ def make_uniq [h : linear_order record] : list record → list record
 | e := e
 
 -- collapse adjacent duplicate records and prefix records with a count
--- TODO: write a coersion string -> nat 
 def prefix_init_count : list record → list record 
 | (r :: rs) := (((to_string 1) :: r) :: prefix_init_count rs)
 | [] := []
 def make_uniq_c_hlp [h : linear_order record] : list record → list record 
 | ((cnt1 :: rs1) :: ((cnt2 :: rs2) :: rs)) := if rs1 = rs2 
-                                              then (((+ cnt1 cnt2) :: rs1) :: make_uniq rs) 
+                                              then ((to_string ((utils.string_to_nat cnt1) + (utils.string_to_nat cnt2)) :: rs1) :: make_uniq rs) 
                                               else ((cnt1 :: rs1) :: ((cnt2 :: rs2) :: make_uniq rs))
 | e := e
 def make_uniq_c [h : linear_order record] : list record → list record 
@@ -147,6 +147,14 @@ def uniq_c (input : stream_of_strings) [h : linear_order record] : stream_of_str
 -- prove `decidable_rel record_asc` as a separate lemma
 -- prove `decidable_rel record_des` as a separate lemma
 -- prove `linear_order record` as a separate lemma
+
+def my_sos : stream_of_strings :=
+{ records := [["Hello", " ", "world!"],
+              ["Why,", " ", "hello."],
+              ["Hello", " ", "world!"]],
+  column_types := [type.str, type.str, type.str],
+  per_line := [],
+  bet_line := [] }
 
 -- a composition of sorts flattens to the outermost sort, 
 -- in this case composing sort_r with sort
