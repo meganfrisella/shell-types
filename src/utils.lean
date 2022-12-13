@@ -12,4 +12,8 @@ def string_to_nat : string → nat
 | "7" := 7
 | _ := 0
 
+def list_to_string {α : Type} [has_to_string α]: list α → string
+| (s :: ss) := to_string s ++ list_to_string ss
+| [] := ""
+
 end utils
