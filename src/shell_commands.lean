@@ -128,21 +128,20 @@ def adj_lines_uniq (input : list record) : Prop := sorry
 -- collapse adjacent duplicate records
 def make_uniq : list record → list record 
 | (r1 :: (r2 :: rs)) := if r1 = r2 
-                        then (r1 :: make_uniq rs) 
-                        else (r1 :: (r2 :: make_uniq rs))
+                        then make_uniq (r1 :: rs) 
+                        else (r1 :: make_uniq (r2 :: rs))
 | e := e
 
 -- collapse adjacent duplicate records and prefix records with a count
 def prefix_init_count : list record → list record 
-| (r :: rs) := (((to_string 1) :: r) :: prefix_init_count rs)
+| (r :: rs) := ((utils.nat_to_string 1 :: r) :: prefix_init_count rs)
 | [] := []
 def make_uniq_c_hlp : list record → list record 
 | ((cnt1 :: rs1) :: ((cnt2 :: rs2) :: rs)) := if rs1 = rs2 
-                                              then ((to_string ((utils.string_to_nat cnt1) + (utils.string_to_nat cnt2)) :: rs1) :: make_uniq rs) 
-                                              else ((cnt1 :: rs1) :: ((cnt2 :: rs2) :: make_uniq rs))
+                                              then make_uniq ((utils.nat_to_string (utils.string_to_nat cnt1 + utils.string_to_nat cnt2) :: rs1) :: rs)
+                                              else ((cnt1 :: rs1) :: (make_uniq ((cnt2 :: rs2) :: rs)))
 | e := e
-def make_uniq_c : list record → list record 
-| rs := make_uniq_c_hlp (prefix_init_count rs)
+def make_uniq_c (rs : list record) : list record := make_uniq_c_hlp (prefix_init_count rs)
 
 -- uniq
 -- filter out adjacent repeated lines
@@ -184,9 +183,9 @@ def my_sos : stream_of_strings :=
               ["Hello", " ", "world!"],
               ["Why,", " ", "hello."],
               ["Hello", " ", "world!"],
+              ["ABC", " "],
               ["ABC"],
-              ["ABC"],
-              ["ABC", " "]],
+              ["ABC"]],
   column_types := [type.str, type.str, type.str],
   per_line := [],
   bet_line := [] }
@@ -196,6 +195,7 @@ def my_sos_uniq_c : stream_of_strings := uniq_c my_sos
 def my_sos_sort : stream_of_strings := sort my_sos
 def my_sos_sort_r : stream_of_strings := sort_r my_sos
 
+#eval my_sos.records
 #eval my_sos_uniq.records
 #eval my_sos_uniq_c.records
 #eval my_sos_sort.records
