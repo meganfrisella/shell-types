@@ -39,8 +39,6 @@ structure stream_of_strings :=
 instance : has_repr record := ⟨λ r, utils.list_to_string r⟩
 instance : has_repr stream_of_strings := ⟨λ sos, list.repr sos.records⟩
 
--- TODO: why can't I use keyword `lemma` here? 
-
 /-                                  -/
 /-               SORT               -/
 /-                                  -/
@@ -139,9 +137,9 @@ def prefix_init_count : list record → list record
 | (r :: rs) := ((utils.nat_to_string 1 :: r) :: prefix_init_count rs)
 | [] := []
 def make_uniq_c_hlp : list record → list record 
-| ((cnt1 :: rs1) :: ((cnt2 :: rs2) :: rs)) := if rs1 = rs2 
-                                              then make_uniq ((utils.nat_to_string (utils.string_to_nat cnt1 + utils.string_to_nat cnt2) :: rs1) :: rs)
-                                              else ((cnt1 :: rs1) :: (make_uniq ((cnt2 :: rs2) :: rs)))
+| ((cnt1 :: r1) :: ((cnt2 :: r2) :: rs)) := if r1 = r2 
+  then make_uniq_c_hlp ((utils.nat_to_string (utils.string_to_nat cnt1 + utils.string_to_nat cnt2) :: r2) :: rs)
+  else ((cnt1 :: r1) :: (make_uniq_c_hlp ((cnt2 :: r2) :: rs)))
 | e := e
 def make_uniq_c (rs : list record) : list record := make_uniq_c_hlp (prefix_init_count rs)
 
@@ -166,7 +164,7 @@ def uniq_c (input : stream_of_strings) : stream_of_strings :=
 /-           DECIDABILITY           -/
 /-                                  -/
 
--- TODO: need string.le_trans
+-- TODO: need string.le_trans...
 def record_linear_order : linear_order record :=
 { le := record_le,
   le_refl := begin intro a, simp, rw record_le, simp end,
@@ -187,6 +185,7 @@ def my_sos : stream_of_strings :=
               ["Hello", " ", "world!"],
               ["ABC", " "],
               ["ABC"],
+              ["ABC"],
               ["ABC"]],
   column_types := [type.str, type.str, type.str],
   per_line := [],
@@ -203,17 +202,22 @@ def my_sos_sort_r : stream_of_strings := sort_r my_sos
 #eval my_sos_sort.records
 #eval my_sos_sort_r.records
 
+
 -- a composition of sorts flattens to the outermost sort, 
 -- in this case composing sort_r with sort
-lemma sort_composition (sos : stream_of_strings) [h_le : decidable_rel record_le] [h_gt : decidable_rel record_gt] : sort sos = sort (sort_r sos) :=
+lemma sort_composition (sos : stream_of_strings) : sort sos = sort (sort_r sos) :=
 begin
+  rw [sort, sort, sort_r, sort_asc, sort_asc, sort_des],
+  simp,
   sorry
 end
 
 -- sorting then doing uniq produces a stream of strings without duplicate lines
-lemma sort_then_uniq_nodup (sos : stream_of_strings) [h_le : decidable_rel record_le] [h : linear_order record] : list.nodup (uniq (sort sos)).records :=
+lemma sort_then_uniq_nodup (sos : stream_of_strings) : list.nodup (uniq (sort sos)).records :=
 begin
-  sorry
+  rw [uniq, sort, list.nodup],
+  simp,
+  sorry,
 end
 
 end shell
