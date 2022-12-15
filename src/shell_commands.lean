@@ -123,7 +123,9 @@ def sort_rn (input : stream_of_strings) [h_gt : decidable_rel record_gt]: option
 /-                                  -/
 
 -- a predicate that says "no adjacent lines are the same"
-def adj_lines_uniq (input : list record) : Prop := sorry
+def adj_lines_uniq : list record → Prop
+| (r1 :: (r2 :: rs)) := r1 ≠ r2 ∧ adj_lines_uniq (r2 :: rs)
+| _ := true
 
 -- collapse adjacent duplicate records
 def make_uniq : list record → list record 
