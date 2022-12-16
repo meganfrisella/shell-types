@@ -1,5 +1,6 @@
 import data.list.sort
 import data.string.basic
+import data.multiset.sort
 import .utils
 
 /-
@@ -66,10 +67,18 @@ begin
   apply string.decidable_lt,
 end
 
+-- TODO: useful (necessary?) to have proofs that string is an instance of each
+instance : is_trans record record_le := sorry
+instance : is_antisymm record record_le := sorry
+instance : is_total record record_le := sorry
+instance : is_trans record record_gt := sorry
+instance : is_antisymm record record_gt := sorry
+instance : is_total record record_gt := sorry
+
 -- sort a list of records ascending
-def sort_asc (rs : list record) : list record := list.merge_sort record_le rs 
+def sort_asc (rs : list record) : list record := multiset.sort record_le ⟦rs⟧ 
 -- sort a list of records descending
-def sort_des (rs : list record) : list record := list.merge_sort record_gt rs 
+def sort_des (rs : list record) : list record := multiset.sort record_gt ⟦rs⟧ 
 
 
 -- sorted predicates on a list of records
@@ -107,13 +116,13 @@ def sort_n : stream_of_strings → option stream_of_strings
 
 -- sort -rn
 -- sort in descending order, first column has numeric type
-def sort_rn_hlp [h_gt : decidable_rel record_gt] : stream_of_strings → list type → option stream_of_strings 
+def sort_rn_hlp : stream_of_strings → list type → option stream_of_strings 
 | sos (type.num :: ts) := some {records := sort_des sos.records,
                                 column_types := sos.column_types,
                                 per_line := sos.per_line,
                                 bet_line := [sorted_des]}
 | _ _ := none
-def sort_rn (input : stream_of_strings) [h_gt : decidable_rel record_gt]: option stream_of_strings := 
+def sort_rn (input : stream_of_strings) : option stream_of_strings := 
   sort_rn_hlp input input.column_types
 
 /-                                  -/
@@ -161,20 +170,6 @@ def uniq_c (input : stream_of_strings) : stream_of_strings :=
     bet_line := adj_lines_uniq :: input.bet_line }
 
 /-                                  -/
-/-           DECIDABILITY           -/
-/-                                  -/
-
--- TODO: need string.le_trans...
-def record_linear_order : linear_order record :=
-{ le := record_le,
-  le_refl := begin intro a, simp, rw record_le, simp end,
-  le_trans := begin intros a b c, simp, repeat {rw record_le}, intros hab hbc, sorry end,
-  lt_iff_le_not_le := sorry,
-  le_antisymm := sorry,
-  le_total := sorry,
-  decidable_le := record_le.decidable_rel, }
-
-/-                                  -/
 /-           VERIFICATION           -/
 /-                                  -/
 
@@ -202,6 +197,29 @@ def my_sos_sort_r : stream_of_strings := sort_r my_sos
 #eval my_sos_sort.records
 #eval my_sos_sort_r.records
 
+----------- Part 1: composing sort commands -----------
+
+-- the lists have the same exact items (including arity)
+-- a.k.a. they are the same multiset
+def same_items {α : Type} (l1 l2 : list α ) : Prop := ⟦l1⟧ = ⟦l2⟧
+
+-- taken from source https://github.com/leanprover-community/mathlib/blob/11bb0c9152e5d14278fb0ac5e0be6d50e2c8fa05/src/data/multiset/sort.lean#L36
+-- modified to use ⟦⟧ notation instead of ↑ 
+@[simp] theorem sort_eq {α : Type} (r : α → α → Prop) (s : multiset α) [decidable_rel r] [is_trans α r] [is_antisymm α r] [is_total α r] : 
+  ⟦(multiset.sort r s)⟧ = s := quot.induction_on s $ λ l, quot.sound $ list.perm_merge_sort _ _
+
+-- applying a sorting rule to lists that contain the same 
+-- exact items produces the same lists
+axiom sort_same_items_produces_same_lists {α : Type} (R : α → α → Prop) (l1 l2 : list α) [decidable_rel R] [is_trans α R] [is_antisymm α R] [is_total α R] :
+  same_items l2 l1 → multiset.sort R ⟦l1⟧ = multiset.sort R ⟦l2⟧
+
+-- a sorted list has the exact same items as the unsorted list
+lemma sorted_list_has_same_items {α : Type} (R : α → α → Prop) (as : list α) [decidable_rel R] [is_trans α R] [is_antisymm α R] [is_total α R] :
+  same_items (multiset.sort R ⟦as⟧) as :=
+begin
+  rw same_items,
+  apply sort_eq R ⟦as⟧,
+end
 
 -- a composition of sorts flattens to the outermost sort, 
 -- in this case composing sort_r with sort
@@ -209,8 +227,11 @@ lemma sort_composition (sos : stream_of_strings) : sort sos = sort (sort_r sos) 
 begin
   rw [sort, sort, sort_r, sort_asc, sort_asc, sort_des],
   simp,
-  sorry
+  apply sort_same_items_produces_same_lists record_le,
+  exact sorted_list_has_same_items record_gt sos.records,
 end
+
+----------- Part 2: composing sort with uniq -----------
 
 -- sorting then doing uniq produces a stream of strings without duplicate lines
 lemma sort_then_uniq_nodup (sos : stream_of_strings) : list.nodup (uniq (sort sos)).records :=
