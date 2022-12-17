@@ -67,10 +67,17 @@ begin
   apply string.decidable_lt,
 end
 
--- TODO: useful (necessary?) to have proofs that string is an instance of each
-instance : is_trans record record_le := sorry
-instance : is_antisymm record record_le := sorry
-instance : is_total record record_le := sorry
+
+-- TODO: useful (necessary?) to have proofs that comparison on 
+-- strings are instances of these
+instance : linear_order record :=
+{ le := record_le,
+  le_refl := begin intro a, simp, rw record_le, simp end,
+  le_trans := begin intros a b c, simp, repeat {rw record_le}, intros hab hbc, sorry end,
+  lt_iff_le_not_le := sorry,
+  le_antisymm := sorry,
+  le_total := sorry,
+  decidable_le := record_le.decidable_rel, }
 instance : is_trans record record_gt := sorry
 instance : is_antisymm record record_gt := sorry
 instance : is_total record record_gt := sorry
@@ -79,7 +86,6 @@ instance : is_total record record_gt := sorry
 def sort_asc (rs : list record) : list record := multiset.sort record_le ⟦rs⟧ 
 -- sort a list of records descending
 def sort_des (rs : list record) : list record := multiset.sort record_gt ⟦rs⟧ 
-
 
 -- sorted predicates on a list of records
 def sorted_asc : list record → Prop 
@@ -190,12 +196,16 @@ def my_sos_uniq : stream_of_strings := uniq my_sos
 def my_sos_uniq_c : stream_of_strings := uniq_c my_sos
 def my_sos_sort : stream_of_strings := sort my_sos
 def my_sos_sort_r : stream_of_strings := sort_r my_sos
+def my_sos_uniq_c_sort_n : option stream_of_strings := sort_n (uniq_c my_sos)
+def my_sos_uniq_c_sort_rn : option stream_of_strings := sort_rn (uniq_c my_sos)
 
 #eval my_sos.records
 #eval my_sos_uniq.records
 #eval my_sos_uniq_c.records
 #eval my_sos_sort.records
 #eval my_sos_sort_r.records
+#eval my_sos_uniq_c_sort_n
+#eval my_sos_uniq_c_sort_rn
 
 ----------- Part 1: composing sort commands -----------
 
@@ -203,8 +213,8 @@ def my_sos_sort_r : stream_of_strings := sort_r my_sos
 -- a.k.a. they are the same multiset
 def same_items {α : Type} (l1 l2 : list α ) : Prop := ⟦l1⟧ = ⟦l2⟧
 
--- taken from source https://github.com/leanprover-community/mathlib/blob/11bb0c9152e5d14278fb0ac5e0be6d50e2c8fa05/src/data/multiset/sort.lean#L36
--- modified to use ⟦⟧ notation instead of ↑ 
+-- modified from mathlib/src/data/multiset/sort.lean [https://github.com/leanprover-community/mathlib/blob/11bb0c9152e5d14278fb0ac5e0be6d50e2c8fa05/src/data/multiset/sort.lean#L36]
+-- to explicitly use ⟦⟧ notation instead of ↑ 
 @[simp] theorem sort_eq {α : Type} (r : α → α → Prop) (s : multiset α) [decidable_rel r] [is_trans α r] [is_antisymm α r] [is_total α r] : 
   ⟦(multiset.sort r s)⟧ = s := quot.induction_on s $ λ l, quot.sound $ list.perm_merge_sort _ _
 
@@ -234,11 +244,7 @@ end
 ----------- Part 2: composing sort with uniq -----------
 
 -- sorting then doing uniq produces a stream of strings without duplicate lines
-lemma sort_then_uniq_nodup (sos : stream_of_strings) : list.nodup (uniq (sort sos)).records :=
-begin
-  rw [uniq, sort, list.nodup],
-  simp,
-  sorry,
-end
+lemma sort_then_uniq_nodup (sos : stream_of_strings) : 
+  list.nodup (uniq (sort sos)).records := sorry
 
 end shell
