@@ -3,14 +3,16 @@ import data.string.basic
 import data.multiset.sort
 import .utils
 
-/-
+/- 
 
-tr -cs A-Za-z '
-' |
-tr A-Z a-z |
-sort |
-uniq -c |
-sort -rn
+GitHub repository: https://github.com/meganfrisella/shell-types 
+
+This project is based on the ideas in this assignment 
+https://cs.brown.edu/courses/cs173/2022/shell.html
+about retrofitting refinement types to shell commands. 
+
+I will continue this work in collaboration with Nikos Vasilakis 
+and Michael Greenberg over the Winter break. 
 
 -/
 
